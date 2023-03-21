@@ -3,6 +3,9 @@ package org.erkebaev.controller;
 import org.erkebaev.dto.MeasurementDTO;
 import org.erkebaev.model.Measurement;
 import org.erkebaev.service.MeasurementService;
+import org.erkebaev.util.MeasurementErrorResponse;
+import org.erkebaev.util.MeasurementException;
+import org.erkebaev.util.MeasurementValidator;
 import org.erkebaev.util.SensorNotValid;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +22,13 @@ import java.util.List;
 @RequestMapping("/measurements")
 public class MeasurementController {
     private final MeasurementService measurementService;
+    private final MeasurementValidator measurementValidator;
     private final ModelMapper modelMapper;
 
     @Autowired
-    public MeasurementController(MeasurementService measurementService, ModelMapper modelMapper) {
+    public MeasurementController(MeasurementService measurementService, MeasurementValidator measurementValidator, ModelMapper modelMapper) {
         this.measurementService = measurementService;
+        this.measurementValidator = measurementValidator;
         this.modelMapper = modelMapper;
     }
 
@@ -33,9 +38,8 @@ public class MeasurementController {
     }
 
     @GetMapping("/rainyDaysCount")
-    public String countRainyDays() {
-
-        return "";
+    public Long countRainyDays() {
+        return measurementService.findAll().stream().filter(Measurement::isRaining).count();
     }
 
     @PostMapping("/add")
@@ -43,6 +47,7 @@ public class MeasurementController {
                                           BindingResult bindingResult) {
         Measurement measurementToAdd = convertToMeasurement(measurementDTO);
 
+        measurementValidator.validate(measurementToAdd, bindingResult);
         if (bindingResult.hasErrors()) {
             StringBuilder errorMsg = new StringBuilder();
             List<FieldError> errors = bindingResult.getFieldErrors();
@@ -54,7 +59,7 @@ public class MeasurementController {
             }
             throw new SensorNotValid(errorMsg.toString());
         }
-        measurementService.save(convertToMeasurement(measurementDTO));
+        measurementService.save(measurementToAdd);
 
         return ResponseEntity.ok(HttpStatus.OK);
     }
@@ -66,5 +71,15 @@ public class MeasurementController {
 
     private MeasurementDTO convertToMeasurementDTO(Measurement measurement) {
         return modelMapper.map(measurement, MeasurementDTO.class);
+    }
+
+    @ExceptionHandler
+    private ResponseEntity<MeasurementErrorResponse> handleException(MeasurementException e) {
+        MeasurementErrorResponse response = new MeasurementErrorResponse(
+                e.getMessage(),
+                System.currentTimeMillis()
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

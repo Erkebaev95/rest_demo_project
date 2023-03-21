@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 public class SensorService {
     private final SensorRepository sensorRepository;
@@ -15,6 +17,10 @@ public class SensorService {
     @Autowired
     public SensorService(SensorRepository sensorRepository) {
         this.sensorRepository = sensorRepository;
+    }
+
+    public Optional<Sensor> findByName(String name) {
+        return sensorRepository.findByName(name);
     }
 
     // Сохраняем в ДБ

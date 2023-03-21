@@ -45,7 +45,8 @@ public class Measurement {
         this.value = value;
     }
 
-    public Boolean getRaining() {
+    // Jackson смотрит на название геттера, отсекает is и оставляет название поля
+    public Boolean isRaining() {
         return raining;
     }
 
